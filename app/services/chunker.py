@@ -16,6 +16,9 @@ class Chunker:
         self.chunk_overlap = chunk_overlap or settings.chunk_overlap
 
     def chunk(self, text: str) -> list[dict[str, str]]:
+        if not text.strip():
+            return []
+
         sentences = re.split(r"(?<=[.!?])\s+", text)
         chunks: list[dict[str, str]] = []
         current_chunk: list[str] = []

@@ -28,7 +28,8 @@ app.include_router(query.router, prefix="/api/v1", tags=["query"])
 
 @app.get("/health")
 async def health():
-    uptime = time.time() - app.state.started_at
+    started_at = getattr(app.state, "started_at", time.time())
+    uptime = time.time() - started_at
     return {
         "status": "ok",
         "version": settings.app_version,

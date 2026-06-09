@@ -11,7 +11,9 @@ from app.config import settings
 
 class VectorStore:
     def __init__(self) -> None:
-        self._client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key or None)
+        self._client = QdrantClient(
+            url=settings.qdrant_url, api_key=settings.qdrant_api_key or None
+        )
         self._collection_name = settings.qdrant_collection_name
         self._vector_size = settings.vector_dimension
         self._ensure_collection()
@@ -84,6 +86,6 @@ class VectorStore:
         )
 
 
-@lru_cache()
+@lru_cache
 def get_vector_store() -> VectorStore:
     return VectorStore()

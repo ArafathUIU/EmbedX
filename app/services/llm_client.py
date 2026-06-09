@@ -6,7 +6,6 @@ from openai import OpenAI
 
 from app.config import settings
 
-
 SYSTEM_PROMPT = """You are a helpful assistant that answers questions based on provided context.
 Answer concisely using only the provided context. If the context does not contain enough
 information to answer the question, say so. Do not make up information."""
@@ -34,6 +33,6 @@ class LLMClient:
         return response.choices[0].message.content or ""
 
 
-@lru_cache()
+@lru_cache
 def get_llm_client() -> LLMClient:
     return LLMClient()

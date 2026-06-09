@@ -24,7 +24,12 @@ def mock_qdrant():
             type(
                 "ScoredPoint",
                 (),
-                {"id": "1", "version": 0, "score": 0.95, "payload": {"text": "test chunk", "chunk_id": "c1"}},
+                {
+                    "id": "1",
+                    "version": 0,
+                    "score": 0.95,
+                    "payload": {"text": "test chunk", "chunk_id": "c1"},
+                },
             )()
         ]
         yield mock
@@ -39,7 +44,11 @@ def mock_llm():
             (),
             {
                 "choices": [
-                    type("Choice", (), {"message": type("Message", (), {"content": "Mocked answer from DeepSeek"})()})()
+                    type("Choice", (), {
+                        "message": type("Message", (), {
+                            "content": "Mocked answer from DeepSeek",
+                        })(),
+                    })(),
                 ],
             },
         )()
@@ -57,7 +66,12 @@ async def test_ingest_endpoint(mock_qdrant, client: AsyncClient):
     response = await client.post(
         "/api/v1/ingest",
         data={"document_id": "doc-1", "metadata": '{"source": "test"}'},
-        files={"file": ("test.txt", b"This is a test document. It has multiple sentences. Here is another one.")},
+        files={
+            "file": (
+                "test.txt",
+                b"This is a test document. It has multiple sentences. Here is another one.",
+            )
+        },
     )
     assert response.status_code == 200
     data = response.json()

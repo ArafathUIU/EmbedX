@@ -13,7 +13,7 @@ class Embedder:
 
     @property
     def dimension(self) -> int:
-        return self._model.get_sentence_embedding_dimension()
+        return self._model.get_embedding_dimension()
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         embeddings = self._model.encode(texts, normalize_embeddings=True)
@@ -23,6 +23,6 @@ class Embedder:
         return self.embed([text])[0]
 
 
-@lru_cache()
+@lru_cache
 def get_embedder() -> Embedder:
     return Embedder()

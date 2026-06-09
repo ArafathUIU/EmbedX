@@ -32,6 +32,6 @@ class Retriever:
         )
 
 
-@lru_cache()
+@lru_cache
 def get_retriever() -> Retriever:
     return Retriever()
