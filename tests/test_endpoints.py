@@ -44,11 +44,19 @@ def mock_llm():
             (),
             {
                 "choices": [
-                    type("Choice", (), {
-                        "message": type("Message", (), {
-                            "content": "Mocked answer from DeepSeek",
-                        })(),
-                    })(),
+                    type(
+                        "Choice",
+                        (),
+                        {
+                            "message": type(
+                                "Message",
+                                (),
+                                {
+                                    "content": "Mocked answer from DeepSeek",
+                                },
+                            )(),
+                        },
+                    )(),
                 ],
             },
         )()

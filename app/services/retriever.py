@@ -27,9 +27,7 @@ class Retriever:
         ]
 
     def format_context(self, chunks: list[ChunkResult]) -> str:
-        return "\n\n".join(
-            f"[{i + 1}] {c.text}" for i, c in enumerate(chunks)
-        )
+        return "\n\n".join(f"[{i + 1}] {c.text}" for i, c in enumerate(chunks))
 
 
 @lru_cache

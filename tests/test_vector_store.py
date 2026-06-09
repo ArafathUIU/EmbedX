@@ -24,6 +24,7 @@ class FakeClient:
     def get_collections(self):
         class Collections:
             collections = self._collections
+
         return Collections()
 
     def search(self, *args, **kwargs):

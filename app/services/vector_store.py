@@ -19,9 +19,7 @@ class VectorStore:
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-        collections = [
-            c.name for c in self._client.get_collections().collections
-        ]
+        collections = [c.name for c in self._client.get_collections().collections]
         if self._collection_name not in collections:
             self._client.create_collection(
                 collection_name=self._collection_name,
@@ -52,9 +50,7 @@ class VectorStore:
         query_filter = None
         if filter_payload:
             conditions = [
-                qdrant_models.FieldCondition(
-                    key=k, match=qdrant_models.MatchValue(value=v)
-                )
+                qdrant_models.FieldCondition(key=k, match=qdrant_models.MatchValue(value=v))
                 for k, v in filter_payload.items()
             ]
             query_filter = qdrant_models.Filter(must=conditions)
@@ -65,10 +61,7 @@ class VectorStore:
             limit=top_k,
             query_filter=query_filter,
         )
-        return [
-            {"id": r.id, "score": r.score, **r.payload}
-            for r in results
-        ]
+        return [{"id": r.id, "score": r.score, **r.payload} for r in results]
 
     def delete_by_document(self, document_id: str) -> None:
         self._client.delete(
