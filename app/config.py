@@ -17,9 +17,9 @@ class Settings(BaseSettings):
 
     embedding_model: str = "all-MiniLM-L6-v2"
 
-    deepseek_api_key: str = ""
-    deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_model: str = "deepseek-chat"
+    llm_api_key: str = ""
+    llm_base_url: str = "https://opencode.ai/zen/go/v1"
+    llm_model: str = "deepseek-v4-pro"
 
     chunk_size: int = 500
     chunk_overlap: int = 50

@@ -1,0 +1,27 @@
+[
+    {
+        "question": "What is the capital of France?",
+        "reference": "The capital of France is Paris.",
+        "context": "France is a country in Western Europe. Its capital and largest city is Paris, located on the Seine River. Paris is known for the Eiffel Tower and the Louvre Museum."
+    },
+    {
+        "question": "What is the largest planet in our solar system?",
+        "reference": "The largest planet in our solar system is Jupiter.",
+        "context": "The solar system contains eight planets. Jupiter is the largest planet, with a diameter of about 139,820 kilometers. It is a gas giant with a Great Red Spot."
+    },
+    {
+        "question": "Who wrote Romeo and Juliet?",
+        "reference": "William Shakespeare wrote Romeo and Juliet.",
+        "context": "Romeo and Juliet is a tragedy written by William Shakespeare early in his career. It was first published in 1597 and is one of Shakespeare's most popular plays."
+    },
+    {
+        "question": "What is the chemical symbol for water?",
+        "reference": "The chemical symbol for water is H2O.",
+        "context": "Water is a chemical substance with the formula H2O. Each molecule contains one oxygen and two hydrogen atoms. It is essential for all known forms of life."
+    },
+    {
+        "question": "How many continents are there on Earth?",
+        "reference": "There are seven continents on Earth.",
+        "context": "Earth has seven continents: Africa, Antarctica, Asia, Australia, Europe, North America, and South America. These are large landmasses separated by oceans."
+    }
+]

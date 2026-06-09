@@ -7,4 +7,4 @@ import pytest
 def _override_settings(monkeypatch):
     monkeypatch.setenv("QDRANT_URL", "http://localhost:6333")
     monkeypatch.setenv("QDRANT_API_KEY", "")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")

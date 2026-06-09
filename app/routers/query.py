@@ -24,5 +24,5 @@ async def query_documents(request: QueryRequest):
         question=request.question,
         answer=answer,
         chunks=chunks,
-        model=settings.deepseek_model,
+        model=settings.llm_model,
     )

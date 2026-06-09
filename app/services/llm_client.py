@@ -14,10 +14,10 @@ information to answer the question, say so. Do not make up information."""
 class LLMClient:
     def __init__(self) -> None:
         self._client = OpenAI(
-            api_key=settings.deepseek_api_key,
-            base_url=settings.deepseek_base_url,
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
         )
-        self._model = settings.deepseek_model
+        self._model = settings.llm_model
 
     def generate(self, prompt: str, context: str) -> str:
         messages = [
