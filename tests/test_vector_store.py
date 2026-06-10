@@ -27,8 +27,10 @@ class FakeClient:
 
         return Collections()
 
-    def search(self, *args, **kwargs):
-        return []
+    def query_points(self, *args, **kwargs):
+        from qdrant_client.http.models import QueryResponse
+
+        return QueryResponse(points=[])
 
     def delete(self, *args, **kwargs):
         pass
@@ -62,13 +64,17 @@ def test_upsert_calls_client(mock_client_class):
 
 @patch("app.services.vector_store.QdrantClient")
 def test_search_returns_results(mock_client_class):
-    from qdrant_client.http.models import ScoredPoint
+    from qdrant_client.http.models import ScoredPoint, QueryResponse
 
     mock_instance = mock_client_class.return_value
     mock_instance.get_collections.return_value.collections = []
-    mock_instance.search.return_value = [
-        ScoredPoint(id="1", version=0, score=0.95, payload={"text": "result"}),
-    ]
+    mock_instance.query_points.return_value = QueryResponse(
+        points=[
+            ScoredPoint(
+                id="1", version=0, score=0.95, payload={"text": "result"}
+            ),
+        ]
+    )
 
     store = VectorStore()
     results = store.search(query_vector=[0.1] * 384, top_k=3)

@@ -20,18 +20,24 @@ def mock_qdrant():
     with patch("app.services.vector_store.QdrantClient") as mock:
         instance = mock.return_value
         instance.get_collections.return_value.collections = []
-        instance.search.return_value = [
-            type(
-                "ScoredPoint",
-                (),
-                {
-                    "id": "1",
-                    "version": 0,
-                    "score": 0.95,
-                    "payload": {"text": "test chunk", "chunk_id": "c1"},
-                },
-            )()
-        ]
+        instance.query_points.return_value = type(
+            "QueryResponse",
+            (),
+            {
+                "points": [
+                    type(
+                        "ScoredPoint",
+                        (),
+                        {
+                            "id": "1",
+                            "version": 0,
+                            "score": 0.95,
+                            "payload": {"text": "test chunk", "chunk_id": "c1"},
+                        },
+                    )()
+                ],
+            },
+        )()
         yield mock
 
 

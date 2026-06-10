@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from typing import Any
 
@@ -8,25 +9,40 @@ from qdrant_client.http import models as qdrant_models
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 class VectorStore:
     def __init__(self) -> None:
-        self._client = QdrantClient(
-            url=settings.qdrant_url, api_key=settings.qdrant_api_key or None
-        )
+        self._client: QdrantClient | None = None
         self._collection_name = settings.qdrant_collection_name
         self._vector_size = settings.vector_dimension
-        self._ensure_collection()
+
+    @property
+    def client(self) -> QdrantClient:
+        if self._client is None:
+            self._client = QdrantClient(
+                url=settings.qdrant_url, api_key=settings.qdrant_api_key or None
+            )
+            self._ensure_collection()
+        return self._client
 
     def _ensure_collection(self) -> None:
-        collections = [c.name for c in self._client.get_collections().collections]
-        if self._collection_name not in collections:
-            self._client.create_collection(
-                collection_name=self._collection_name,
-                vectors_config=qdrant_models.VectorParams(
-                    size=self._vector_size,
-                    distance=qdrant_models.Distance.COSINE,
-                ),
+        try:
+            collections = [c.name for c in self.client.get_collections().collections]
+            if self._collection_name not in collections:
+                self.client.create_collection(
+                    collection_name=self._collection_name,
+                    vectors_config=qdrant_models.VectorParams(
+                        size=self._vector_size,
+                        distance=qdrant_models.Distance.COSINE,
+                    ),
+                )
+        except Exception:
+            logger.warning(
+                "Could not ensure Qdrant collection exists, "
+                "vector store may not be available",
+                exc_info=True,
             )
 
     def upsert(
@@ -39,7 +55,7 @@ class VectorStore:
             qdrant_models.PointStruct(id=pid, vector=vec, payload=payload)
             for pid, vec, payload in zip(ids, vectors, payloads)
         ]
-        self._client.upsert(collection_name=self._collection_name, points=points)
+        self.client.upsert(collection_name=self._collection_name, points=points)
 
     def search(
         self,
@@ -50,21 +66,26 @@ class VectorStore:
         query_filter = None
         if filter_payload:
             conditions = [
-                qdrant_models.FieldCondition(key=k, match=qdrant_models.MatchValue(value=v))
+                qdrant_models.FieldCondition(
+                    key=k, match=qdrant_models.MatchValue(value=v)
+                )
                 for k, v in filter_payload.items()
             ]
             query_filter = qdrant_models.Filter(must=conditions)
 
-        results = self._client.search(
+        response = self.client.query_points(
             collection_name=self._collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             query_filter=query_filter,
         )
-        return [{"id": r.id, "score": r.score, **r.payload} for r in results]
+        return [
+            {"id": p.id, "score": p.score, **p.payload}
+            for p in response.points
+        ]
 
     def delete_by_document(self, document_id: str) -> None:
-        self._client.delete(
+        self.client.delete(
             collection_name=self._collection_name,
             points_selector=qdrant_models.FilterSelector(
                 filter=qdrant_models.Filter(

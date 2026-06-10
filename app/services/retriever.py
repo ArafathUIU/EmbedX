@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from app.config import settings
 from app.schemas import ChunkResult
 from app.services.embedder import get_embedder
 from app.services.vector_store import get_vector_store
+
+logger = logging.getLogger(__name__)
 
 
 class Retriever:
@@ -15,7 +18,11 @@ class Retriever:
         store = get_vector_store()
 
         query_vector = embedder.embed_query(query)
-        results = store.search(query_vector=query_vector, top_k=k)
+        try:
+            results = store.search(query_vector=query_vector, top_k=k)
+        except Exception:
+            logger.warning("Vector store search failed, returning empty results", exc_info=True)
+            return []
 
         return [
             ChunkResult(
