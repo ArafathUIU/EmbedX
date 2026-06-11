@@ -8,7 +8,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/documents", icon: FileText, label: "Documents" },
   { to: "/query", icon: MessageSquare, label: "Query" },
-  { to: "/mindmap", icon: GitGraph, label: "Mindmap" },
+  { to: "/mindmap", icon: GitGraph, label: "Notebook" },
 ];
 
 export function Sidebar() {
