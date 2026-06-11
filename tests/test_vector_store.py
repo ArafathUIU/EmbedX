@@ -64,15 +64,13 @@ def test_upsert_calls_client(mock_client_class):
 
 @patch("app.services.vector_store.QdrantClient")
 def test_search_returns_results(mock_client_class):
-    from qdrant_client.http.models import ScoredPoint, QueryResponse
+    from qdrant_client.http.models import QueryResponse, ScoredPoint
 
     mock_instance = mock_client_class.return_value
     mock_instance.get_collections.return_value.collections = []
     mock_instance.query_points.return_value = QueryResponse(
         points=[
-            ScoredPoint(
-                id="1", version=0, score=0.95, payload={"text": "result"}
-            ),
+            ScoredPoint(id="1", version=0, score=0.95, payload={"text": "result"}),
         ]
     )
 

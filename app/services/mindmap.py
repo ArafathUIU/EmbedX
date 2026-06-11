@@ -42,12 +42,14 @@ class MindmapService:
             vector = p.vector
             if vector is None:
                 continue
-            nodes.append({
-                "id": str(p.id),
-                "index": i,
-                "text": (p.payload or {}).get("text", "")[:120],
-                "full_text": (p.payload or {}).get("text", ""),
-            })
+            nodes.append(
+                {
+                    "id": str(p.id),
+                    "index": i,
+                    "text": (p.payload or {}).get("text", "")[:120],
+                    "full_text": (p.payload or {}).get("text", ""),
+                }
+            )
             vectors.append(vector)
 
         if len(vectors) < 2:
@@ -63,11 +65,13 @@ class MindmapService:
             for j in range(i + 1, n):
                 score = float(sim[i][j])
                 if score >= similarity_threshold:
-                    edges.append({
-                        "source": nodes[i]["id"],
-                        "target": nodes[j]["id"],
-                        "score": round(score, 3),
-                    })
+                    edges.append(
+                        {
+                            "source": nodes[i]["id"],
+                            "target": nodes[j]["id"],
+                            "score": round(score, 3),
+                        }
+                    )
 
         edges.sort(key=lambda e: e["score"], reverse=True)
 

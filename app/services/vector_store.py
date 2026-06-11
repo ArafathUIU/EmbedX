@@ -44,8 +44,7 @@ class VectorStore:
                 )
         except Exception:
             logger.warning(
-                "Could not ensure Qdrant collection exists, "
-                "vector store may not be available",
+                "Could not ensure Qdrant collection exists, vector store may not be available",
                 exc_info=True,
             )
 
@@ -70,9 +69,7 @@ class VectorStore:
         query_filter = None
         if filter_payload:
             conditions = [
-                qdrant_models.FieldCondition(
-                    key=k, match=qdrant_models.MatchValue(value=v)
-                )
+                qdrant_models.FieldCondition(key=k, match=qdrant_models.MatchValue(value=v))
                 for k, v in filter_payload.items()
             ]
             query_filter = qdrant_models.Filter(must=conditions)
@@ -83,10 +80,7 @@ class VectorStore:
             limit=top_k,
             query_filter=query_filter,
         )
-        return [
-            {"id": p.id, "score": p.score, **p.payload}
-            for p in response.points
-        ]
+        return [{"id": p.id, "score": p.score, **p.payload} for p in response.points]
 
     def delete_by_document(self, document_id: str) -> None:
         self.client.delete(

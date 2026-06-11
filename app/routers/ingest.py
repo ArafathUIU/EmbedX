@@ -23,6 +23,7 @@ def _extract_text(content: bytes, filename: str) -> str:
     if ext == "pdf":
         try:
             import io
+
             from PyPDF2 import PdfReader
         except ImportError:
             raise HTTPException(
