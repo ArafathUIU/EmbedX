@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useIngest } from "@/hooks/use-ingest";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,12 @@ export default function Documents() {
   const [documentId, setDocumentId] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { upload, isLoading, error, result } = useIngest();
+
+  useEffect(() => {
+    if (result) {
+      sessionStorage.setItem("embedx_last_doc", result.document_id);
+    }
+  }, [result]);
 
   const {
     getRootProps,

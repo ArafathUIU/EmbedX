@@ -4,25 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMindmap, type MindmapNode } from "@/api/client";
-import { GitGraph, X, Maximize2 } from "lucide-react";
+import { GitGraph, X, Maximize2, Link2 } from "lucide-react";
 
 interface SimNode extends MindmapNode {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  radius: number;
+  x: number; y: number;
+  vx: number; vy: number;
   color: string;
-  opacity: number;
-  width: number;
-  height: number;
+  width: number; height: number;
 }
 
 interface SimEdge {
   source: SimNode;
   target: SimNode;
   score: number;
-  opacity: number;
 }
 
 const DOTS = [
@@ -30,21 +24,16 @@ const DOTS = [
   "#a78bfa", "#34d399", "#fb923c", "#38bdf8", "#e879f9",
 ];
 
-const PASTEL = "rgba(153,102,255,0.12)";
-const BORDER = "rgba(153,102,255,0.28)";
-const FILL_COLORS = [
-  "rgba(153,102,255,0.14)", "rgba(0,229,160,0.12)", "rgba(96,165,250,0.12)",
-  "rgba(244,114,182,0.12)", "rgba(250,204,21,0.10)", "rgba(167,139,250,0.14)",
-  "rgba(52,211,153,0.12)", "rgba(251,146,60,0.12)", "rgba(56,189,248,0.12)",
-  "rgba(232,121,249,0.12)",
-];
+const EDGE_MAX = 2;
+const REPULSE = 120;
+const SIM_ITERS = 600;
+const THRESHOLD = 0.4;
 
 function estimateSize(text: string) {
-  const lineLength = 28;
-  const lines = Math.ceil(text.length / lineLength);
+  const lines = Math.ceil(text.length / 28);
   return {
-    w: Math.min(Math.max(text.length * 5.5 + 24, 80), 220),
-    h: Math.min(Math.max(lines * 15 + 18, 34), 72),
+    w: Math.min(Math.max(text.length * 5.2 + 30, 85), 200),
+    h: Math.min(Math.max(lines * 14 + 18, 32), 68),
   };
 }
 
@@ -74,102 +63,64 @@ function assignClusters(nodes: SimNode[], edges: SimEdge[]): void {
   clusters.sort((a, b) => b.length - a.length);
   const idToIdx = new Map<string, number>();
   clusters.forEach((c, i) => c.forEach((id) => idToIdx.set(id, i)));
-  for (const n of nodes) {
-    const ci = idToIdx.get(n.id) ?? 0;
-    n.color = DOTS[ci % DOTS.length];
-  }
+  for (const n of nodes) n.color = DOTS[(idToIdx.get(n.id) ?? 0) % DOTS.length];
 }
 
 function layoutGraph(
   nodes: SimNode[],
   edges: SimEdge[],
-  w: number,
-  h: number,
-  maxEdgesPerNode: number
+  w: number, h: number
 ): void {
-  // Filter to strongest edges
-  const nodeEdges = new Map<string, SimEdge[]>();
-  for (const n of nodes) nodeEdges.set(n.id, []);
-  for (const e of edges) {
-    nodeEdges.get(e.source.id)?.push(e);
-    nodeEdges.get(e.target.id)?.push(e);
-  }
-  const keptEdges: SimEdge[] = [];
-  const usedEdges = new Set<SimEdge>();
-    for (const [, es] of nodeEdges) {
-    es.sort((a, b) => b.score - a.score);
-    for (let i = 0; i < Math.min(es.length, maxEdgesPerNode); i++) {
-      if (!usedEdges.has(es[i])) {
-        usedEdges.add(es[i]);
-        keptEdges.push(es[i]);
-      }
-    }
-  }
-
-  // Place in a wide ring, grouped by cluster
   const cx = w / 2;
   const cy = h / 2;
-  const spread = Math.min(w, h) * 0.4;
-  const angleStep = (2 * Math.PI) / Math.max(nodes.length, 1);
+  const spread = Math.min(w, h) * 0.44;
+
+  // Ring start
   for (let i = 0; i < nodes.length; i++) {
-    const angle = angleStep * i - Math.PI / 2;
-    nodes[i].x = cx + Math.cos(angle) * spread + (Math.random() - 0.5) * 20;
-    nodes[i].y = cy + Math.sin(angle) * spread + (Math.random() - 0.5) * 20;
-    nodes[i].vx = 0;
-    nodes[i].vy = 0;
+    const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
+    nodes[i].x = cx + Math.cos(angle) * spread;
+    nodes[i].y = cy + Math.sin(angle) * spread;
+    nodes[i].vx = 0; nodes[i].vy = 0;
   }
 
-  // Fast convergence simulation
-  const activeEdges = keptEdges;
-  for (let iter = 0; iter < 400; iter++) {
-    const alpha = Math.max(0.01, 0.6 * Math.exp(-iter / 150));
+  // Simulation
+  for (let iter = 0; iter < SIM_ITERS; iter++) {
+    const alpha = Math.max(0.005, 0.5 * Math.exp(-iter / 120));
 
-    // Center gravity
-    for (const n of nodes) {
-      n.vx += (cx - n.x) * 0.001 * alpha;
-      n.vy += (cy - n.y) * 0.001 * alpha;
-    }
-
-    // Edge attraction
-    for (const e of activeEdges) {
+    for (const e of edges) {
       const dx = e.target.x - e.source.x;
       const dy = e.target.y - e.source.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const targetDist = 130 + e.source.width / 2 + e.target.width / 2;
-      const force = (dist - targetDist) * 0.015 * e.score;
+      const target = 100 + e.source.width / 2 + e.target.width / 2;
+      const force = (dist - target) * 0.01 * e.score;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
-      e.source.vx += fx * alpha;
-      e.source.vy += fy * alpha;
-      e.target.vx -= fx * alpha;
-      e.target.vy -= fy * alpha;
+      e.source.vx += fx * alpha; e.source.vy += fy * alpha;
+      e.target.vx -= fx * alpha; e.target.vy -= fy * alpha;
     }
 
-    // Node repulsion
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[j].x - nodes[i].x;
-        const dy = nodes[j].y - nodes[i].y;
+        const a = nodes[i], b = nodes[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const minDist = nodes[i].width / 2 + nodes[j].width / 2 + 55;
+        const minDist = a.width / 2 + b.width / 2 + REPULSE;
         if (dist < minDist) {
-          const force = (minDist - dist) * 0.04;
+          const force = (minDist - dist) * 0.03;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
-          nodes[i].vx -= fx; nodes[i].vy -= fy;
-          nodes[j].vx += fx; nodes[j].vy += fy;
+          a.vx -= fx; a.vy -= fy;
+          b.vx += fx; b.vy += fy;
         }
       }
     }
 
-    // Damping + bounds
     for (const n of nodes) {
-      n.vx *= 0.4;
-      n.vy *= 0.4;
-      n.x += n.vx;
-      n.y += n.vy;
-      const hw = n.width / 2 + 10;
-      const hh = n.height / 2 + 10;
+      n.vx *= 0.35; n.vy *= 0.35;
+      n.x += n.vx; n.y += n.vy;
+      const hw = n.width / 2 + 15;
+      const hh = n.height / 2 + 15;
       n.x = Math.max(hw, Math.min(w - hw, n.x));
       n.y = Math.max(hh, Math.min(h - hh, n.y));
     }
@@ -178,68 +129,89 @@ function layoutGraph(
 
 export default function Mindmap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [documentId, setDocumentId] = useState("");
+  const [documentId, setDocumentId] = useState(
+    () => sessionStorage.getItem("embedx_last_doc") || ""
+  );
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.75);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragNode, setDragNode] = useState<SimNode | null>(null);
   const [ready, setReady] = useState(false);
-  const simNodes = useRef<SimNode[]>([]);
-  const simEdges = useRef<SimEdge[]>([]);
+  const nodesRef = useRef<SimNode[]>([]);
+  const edgesRef = useRef<SimEdge[]>([]);
   const animRef = useRef<number>(0);
 
-  const load = useCallback(async () => {
-    if (!documentId.trim()) return;
-    setLoading(true);
-    setError(null);
-    setReady(false);
-    setSelectedNode(null);
+  const doLoad = useCallback(async (docId: string) => {
+    if (!docId.trim()) return;
+    setLoading(true); setError(null); setReady(false); setSelectedNode(null);
     try {
-      const data = await fetchMindmap(documentId, 0.35);
+      const data = await fetchMindmap(docId, THRESHOLD);
       if (data.nodes.length === 0) { setError("No chunks found"); return; }
-
       setComputing(true);
       await new Promise((r) => setTimeout(r, 30));
 
       const w = canvasRef.current?.width ?? 1200;
       const h = canvasRef.current?.height ?? 800;
-      const sizeCache = new Map<string, { w: number; h: number }>();
 
-      const simN: SimNode[] = data.nodes.map((n) => {
-        const sz = estimateSize(n.text);
-        sizeCache.set(n.id, sz);
-        return {
-          ...n, x: 0, y: 0, vx: 0, vy: 0,
-          radius: 6, color: DOTS[0], opacity: 1,
-          width: sz.w, height: sz.h,
-        };
-      });
+      const simN: SimNode[] = data.nodes.map((n) => ({
+        ...n, x: 0, y: 0, vx: 0, vy: 0,
+        color: DOTS[0],
+        width: estimateSize(n.text).w,
+        height: estimateSize(n.text).h,
+      }));
 
       const idMap = new Map(simN.map((n) => [n.id, n]));
       const allEdges: SimEdge[] = [];
       for (const e of data.edges) {
-        const s = idMap.get(e.source);
-        const t = idMap.get(e.target);
-        if (s && t) allEdges.push({ source: s, target: t, score: e.score, opacity: 1 });
+        const s = idMap.get(e.source); const t = idMap.get(e.target);
+        if (s && t) allEdges.push({ source: s, target: t, score: e.score });
       }
 
-      assignClusters(simN, allEdges);
-      layoutGraph(simN, allEdges, w, h, 3);
+      // Keep only top edges per node
+      const byNode = new Map<string, SimEdge[]>();
+      for (const n of simN) byNode.set(n.id, []);
+      for (const e of allEdges) {
+        byNode.get(e.source.id)?.push(e);
+        byNode.get(e.target.id)?.push(e);
+      }
+      const kept = new Set<SimEdge>();
+      for (const [, es] of byNode) {
+        es.sort((a, b) => b.score - a.score);
+        for (let i = 0; i < Math.min(es.length, EDGE_MAX); i++) kept.add(es[i]);
+      }
+      const filteredEdges = [...kept];
 
-      simNodes.current = simN;
-      simEdges.current = allEdges;
-      setComputing(false);
-      setReady(true);
+      assignClusters(simN, filteredEdges);
+      layoutGraph(simN, filteredEdges, w, h);
+
+      nodesRef.current = simN;
+      edgesRef.current = filteredEdges;
+      setComputing(false); setReady(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally { setLoading(false); }
-  }, [documentId]);
+  }, []);
+
+  // Auto-load from sessionStorage on mount
+  useEffect(() => {
+    const lastDoc = sessionStorage.getItem("embedx_last_doc");
+    if (lastDoc) {
+      setDocumentId(lastDoc);
+      doLoad(lastDoc);
+    }
+  }, [doLoad]);
+
+  const load = useCallback(() => {
+    if (!documentId.trim()) return;
+    sessionStorage.setItem("embedx_last_doc", documentId);
+    doLoad(documentId);
+  }, [documentId, doLoad]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -254,83 +226,61 @@ export default function Mindmap() {
     ctx.scale(zoom, zoom);
     ctx.translate(-w / 2, -h / 2);
 
-    const n = simNodes.current;
-    const e = simEdges.current;
-
-    // draw all edges
-    for (const edge of e) {
-      if (edge.opacity < 0.03) continue;
-      const a = edge.opacity * (0.05 + edge.score * 0.22);
+    for (const e of edgesRef.current) {
+      const a = 0.04 + e.score * 0.18;
       ctx.beginPath();
-      ctx.moveTo(edge.source.x, edge.source.y);
-      ctx.lineTo(edge.target.x, edge.target.y);
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
       ctx.strokeStyle = `rgba(153,102,255,${a.toFixed(3)})`;
-      ctx.lineWidth = 0.6 + edge.score * 1.2 * edge.opacity;
+      ctx.lineWidth = 0.5 + e.score * 1;
       ctx.stroke();
     }
 
-    // draw all nodes
-    for (const node of n) {
-      if (node.opacity < 0.05) continue;
+    for (const node of nodesRef.current) {
       const isHov = hoveredNode?.id === node.id;
       const isSel = selectedNode?.id === node.id;
-      const hw = node.width / 2;
-      const hh = node.height / 2;
-      const rx = 14;
-      const x = node.x - hw, y = node.y - hh;
+      const hw = node.width / 2, hh = node.height / 2;
+      const rx = 12;
 
-      ctx.globalAlpha = node.opacity;
-
-      // subtle shadow
       if (isHov || isSel) {
-        ctx.shadowColor = `${node.color}40`;
-        ctx.shadowBlur = 14;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowColor = `${node.color}30`;
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 2;
       }
 
-      // rounded pill
-      const ci = DOTS.indexOf(node.color);
-      const fill = (isHov || isSel) ? FILL_COLORS[Math.max(ci, 0) % FILL_COLORS.length] : PASTEL;
-      const stroke = (isHov || isSel) ? node.color : BORDER;
-
+      const x = node.x - hw, y = node.y - hh;
       ctx.beginPath();
-      ctx.moveTo(x + rx, y);
-      ctx.lineTo(x + node.width - rx, y);
+      ctx.moveTo(x + rx, y); ctx.lineTo(x + node.width - rx, y);
       ctx.quadraticCurveTo(x + node.width, y, x + node.width, y + rx);
       ctx.lineTo(x + node.width, y + node.height - rx);
       ctx.quadraticCurveTo(x + node.width, y + node.height, x + node.width - rx, y + node.height);
       ctx.lineTo(x + rx, y + node.height);
       ctx.quadraticCurveTo(x, y + node.height, x, y + node.height - rx);
-      ctx.lineTo(x, y + rx);
-      ctx.quadraticCurveTo(x, y, x + rx, y);
+      ctx.lineTo(x, y + rx); ctx.quadraticCurveTo(x, y, x + rx, y);
       ctx.closePath();
-      ctx.fillStyle = fill;
+
+      ctx.fillStyle = isHov || isSel
+        ? `${node.color}18` : "rgba(153,102,255,0.08)";
       ctx.fill();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = isHov || isSel ? 1.4 : 0.7;
+      ctx.strokeStyle = isHov || isSel ? node.color : "rgba(153,102,255,0.22)";
+      ctx.lineWidth = isHov || isSel ? 1.3 : 0.6;
       ctx.stroke();
       ctx.shadowBlur = 0;
-      ctx.shadowColor = "transparent";
 
-      // dot
-      ctx.beginPath();
-      ctx.arc(x + 11, y + 11, 3, 0, Math.PI * 2);
-      ctx.fillStyle = node.color;
-      ctx.fill();
+      // Dot
+      ctx.beginPath(); ctx.arc(x + 10, y + 10, 2.8, 0, Math.PI * 2);
+      ctx.fillStyle = node.color; ctx.fill();
 
-      // text
-      const lines = node.text.match(/.{1,28}/g) || [node.text];
-      ctx.fillStyle = "#bab5c4";
-      ctx.font = `${isSel ? 500 : 400} 10px "Manrope", system-ui, sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      const startY = node.y - ((lines.length - 1) * 13) / 2;
-      const maxLines = Math.min(lines.length, 4);
-      for (let i = 0; i < maxLines; i++) {
-        const txt = i === 3 && lines.length > 4 ? lines[i].slice(0, 27) + "\u2026" : lines[i];
-        ctx.fillText(txt, x + 18, startY + i * 13);
+      // Label
+      const lines = node.text.match(/.{1,26}/g) || [node.text];
+      ctx.fillStyle = "#b0acb8";
+      ctx.font = `${isSel ? 500 : 400} 9.5px "Manrope", system-ui, sans-serif`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const sy = node.y - ((lines.length - 1) * 12.5) / 2;
+      for (let i = 0; i < Math.min(lines.length, 4); i++) {
+        const t = i === 3 && lines.length > 4 ? lines[i].slice(0, 25) + "\u2026" : lines[i];
+        ctx.fillText(t, x + 16, sy + i * 12.5);
       }
-      ctx.globalAlpha = 1;
     }
     ctx.restore();
   }, [hoveredNode, selectedNode, zoom, offset]);
@@ -338,109 +288,80 @@ export default function Mindmap() {
   useEffect(() => {
     if (!ready) return;
     let running = true;
-    const loop = () => {
-      if (!running) return;
-      render();
-      animRef.current = requestAnimationFrame(loop);
-    };
+    const loop = () => { if (!running) return; render(); animRef.current = requestAnimationFrame(loop); };
     animRef.current = requestAnimationFrame(loop);
     return () => { running = false; cancelAnimationFrame(animRef.current); };
   }, [ready, render]);
 
-  const screenToWorld = useCallback((ex: number, ey: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
+  const toWorld = useCallback((ex: number, ey: number) => {
+    const c = canvasRef.current; if (!c) return { x: 0, y: 0 };
+    const r = c.getBoundingClientRect();
     return {
-      x: (ex - rect.left - offset.x - canvas.width / 2) / zoom + canvas.width / 2,
-      y: (ey - rect.top - offset.y - canvas.height / 2) / zoom + canvas.height / 2,
+      x: (ex - r.left - offset.x - c.width / 2) / zoom + c.width / 2,
+      y: (ey - r.top - offset.y - c.height / 2) / zoom + c.height / 2,
     };
   }, [offset, zoom]);
 
-  const hitTest = (wx: number, wy: number): SimNode | null => {
-    for (const node of simNodes.current) {
-      if (Math.abs(wx - node.x) < node.width / 2 + 6 && Math.abs(wy - node.y) < node.height / 2 + 6) {
-        return node;
-      }
+  const hit = (wx: number, wy: number) => {
+    for (const n of nodesRef.current) {
+      if (Math.abs(wx - n.x) < n.width / 2 + 4 && Math.abs(wy - n.y) < n.height / 2 + 4) return n;
     }
     return null;
   };
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!ready) return;
     if (dragging && dragNode) {
-      const { x, y } = screenToWorld(e.clientX, e.clientY);
-      dragNode.x = x; dragNode.y = y;
-      return;
+      const p = toWorld(e.clientX, e.clientY);
+      dragNode.x = p.x; dragNode.y = p.y; return;
     }
     if (dragging) {
       setOffset({ x: offset.x + e.clientX - dragStart.x, y: offset.y + e.clientY - dragStart.y });
-      setDragStart({ x: e.clientX, y: e.clientY });
-      return;
+      setDragStart({ x: e.clientX, y: e.clientY }); return;
     }
-    const { x, y } = screenToWorld(e.clientX, e.clientY);
-    setHoveredNode(hitTest(x, y));
-  }, [ready, dragging, dragNode, dragStart, offset, zoom, screenToWorld]);
+    const p = toWorld(e.clientX, e.clientY);
+    setHoveredNode(hit(p.x, p.y));
+  }, [ready, dragging, dragNode, dragStart, offset, zoom, toWorld]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!ready) return;
-    const { x, y } = screenToWorld(e.clientX, e.clientY);
-    const hit = hitTest(x, y);
-    if (hit) {
-      setDragNode(hit);
-      setSelectedNode(hit);
-      setDragging(true);
-    } else {
-      setDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
-    }
-  }, [ready, screenToWorld]);
+    const p = toWorld(e.clientX, e.clientY);
+    const h = hit(p.x, p.y);
+    if (h) { setDragNode(h); setSelectedNode(h); setDragging(true); }
+    else { setDragging(true); setDragStart({ x: e.clientX, y: e.clientY }); }
+  }, [ready, toWorld]);
 
-  const handleMouseUp = useCallback(() => {
-    setDragging(false); setDragNode(null);
-  }, []);
-
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    setZoom((z) => Math.max(0.25, Math.min(3, z * (1 - e.deltaY * 0.001))));
-  }, []);
+  const onMouseUp = useCallback(() => { setDragging(false); setDragNode(null); }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up">
       <div>
         <h2 className="font-display text-2xl font-bold tracking-tight text-bone">Notebook</h2>
-        <p className="font-mono text-xs text-bone-dim tracking-wide uppercase mt-2">
-          Topic Map &middot; NotebookLM-style
+        <p className="font-mono text-[11px] text-bone-dim tracking-wide uppercase mt-1.5">
+          Topic Map &middot; Auto-loads from upload
         </p>
       </div>
 
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-2">
         <div className="flex-1">
-          <label className="font-mono text-[10px] text-bone-dim tracking-widest uppercase mb-1.5 block">
-            Document ID
-          </label>
           <Input
-            placeholder="Enter document ID..."
+            placeholder="Document ID (auto-filled from upload)"
             value={documentId}
             onChange={(e) => setDocumentId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && load()}
           />
         </div>
         <Button onClick={load} loading={loading || computing} variant="mint" size="lg">
-          <GitGraph className="w-4 h-4 mr-2" />Visualize
+          <GitGraph className="w-4 h-4 mr-1.5" />Load
         </Button>
       </div>
 
-      {error && <div className="p-4 bg-heat/5 border border-heat/30 font-mono text-xs text-heat">{error}</div>}
+      {error && <div className="p-3 bg-heat/5 border border-heat/30 font-mono text-[11px] text-heat">{error}</div>}
 
       {(loading || computing) && (
-        <div className="border border-border bg-surface p-8 space-y-3">
-          <Skeleton className="h-[640px]" />
-          {computing && (
-            <p className="text-center font-mono text-xs text-bone-dim animate-pulse">
-              Computing layout...
-            </p>
-          )}
+        <div className="border border-border bg-surface p-6">
+          <Skeleton className="h-[600px]" />
+          {computing && <p className="text-center font-mono text-[11px] text-bone-dim mt-3 animate-pulse">Computing layout&hellip;</p>}
         </div>
       )}
 
@@ -448,58 +369,52 @@ export default function Mindmap() {
         <div className="border border-border bg-void relative overflow-hidden">
           <div className="absolute top-3 left-3 z-10 flex gap-px bg-border">
             <Button variant="ghost" size="sm" onClick={() => setZoom((z) => Math.min(3, z * 1.25))}>
-              <span className="font-mono text-xs">+</span>
+              <span className="font-mono text-[11px]">+</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}>
-              <span className="font-mono text-xs">&minus;</span>
+              <span className="font-mono text-[11px]">&minus;</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setZoom(0.75); setOffset({ x: 0, y: 0 }); }}>
               <Maximize2 className="w-3.5 h-3.5" />
             </Button>
           </div>
 
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
-            <Badge variant="ghost">{simNodes.current.length} topics</Badge>
-            <Badge variant="ghost">{simEdges.current.length} links</Badge>
+            <Badge variant="ghost">{nodesRef.current.length} topics</Badge>
+            <Badge variant="ghost"><Link2 className="w-3 h-3 mr-0.5" />{edgesRef.current.length}</Badge>
           </div>
 
           {selectedNode && (
-            <div className="absolute top-3 right-3 z-10 max-w-sm p-4 bg-surface border border-border shadow-xl">
+            <div className="absolute top-3 right-3 z-10 max-w-xs p-3.5 bg-surface border border-border shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedNode.color }} />
-                  <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase">TOPIC</span>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedNode.color }} />
+                  <span className="font-mono text-[10px] text-bone-dim tracking-wider uppercase">Topic</span>
                 </div>
-                <button onClick={() => setSelectedNode(null)} className="text-bone-dim hover:text-bone">
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                <button onClick={() => setSelectedNode(null)} className="text-bone-dim hover:text-bone"><X className="w-3 h-3" /></button>
               </div>
-              <p className="font-body text-[13px] text-bone leading-relaxed max-h-48 overflow-y-auto scrollbar-thin pr-1">
+              <p className="font-body text-[12px] text-bone leading-relaxed max-h-40 overflow-y-auto scrollbar-thin pr-1">
                 {selectedNode.full_text || selectedNode.text}
               </p>
             </div>
           )}
 
           <canvas
-            ref={canvasRef}
-            width={1200}
-            height={700}
-            className="w-full h-[700px] cursor-grab"
-            onMouseMove={handleMouseMove}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => { handleMouseUp(); setHoveredNode(null); }}
-            onWheel={handleWheel}
+            ref={canvasRef} width={1200} height={640}
+            className="w-full h-[640px] cursor-grab"
+            onMouseMove={onMouseMove} onMouseDown={onMouseDown}
+            onMouseUp={onMouseUp} onMouseLeave={() => { onMouseUp(); setHoveredNode(null); }}
+            onWheel={(e) => { e.preventDefault(); setZoom((z) => Math.max(0.25, Math.min(3, z * (1 - e.deltaY * 0.001)))); }}
           />
         </div>
       )}
 
       {!loading && !computing && !ready && !error && (
-        <div className="border border-border bg-surface flex flex-col items-center justify-center py-32 text-center">
-          <GitGraph className="w-14 h-14 text-bone-dim mb-4 opacity-15" />
+        <div className="border border-border bg-surface flex flex-col items-center justify-center py-28 text-center">
+          <GitGraph className="w-12 h-12 text-bone-dim mb-3 opacity-15" />
           <p className="font-display text-sm text-bone-muted font-medium mb-1">No graph loaded</p>
-          <p className="font-body text-xs text-bone-dim max-w-sm">
-            Index a document, enter its ID above, and see the topic map with cleaned-up layout.
+          <p className="font-body text-[12px] text-bone-dim max-w-xs">
+            Upload a document on the <span className="text-bone">Documents</span> page — the mindmap loads automatically here.
           </p>
         </div>
       )}
