@@ -75,3 +75,33 @@ export async function queryDocuments(question: string, topK?: number): Promise<{
     body: JSON.stringify({ question, top_k: topK }),
   });
 }
+
+export interface MindmapNode {
+  id: string;
+  index: number;
+  text: string;
+  full_text: string;
+}
+
+export interface MindmapEdge {
+  source: string;
+  target: string;
+  score: number;
+}
+
+export interface MindmapData {
+  nodes: MindmapNode[];
+  edges: MindmapEdge[];
+}
+
+export async function fetchMindmap(
+  documentId: string,
+  threshold?: number
+): Promise<MindmapData> {
+  const params = threshold ? `?threshold=${threshold}` : "";
+  const response = await fetch(`/api/v1/mindmap/${documentId}${params}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch mindmap");
+  }
+  return response.json();
+}

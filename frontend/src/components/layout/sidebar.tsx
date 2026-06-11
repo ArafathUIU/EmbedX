@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, FileText, MessageSquare, ExternalLink } from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, GitGraph, ExternalLink } from "lucide-react";
 import { StatusDot, Badge } from "../ui/badge";
 import { useHealth } from "@/hooks/use-health";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/documents", icon: FileText, label: "Documents" },
   { to: "/query", icon: MessageSquare, label: "Query" },
+  { to: "/mindmap", icon: GitGraph, label: "Mindmap" },
 ];
 
 export function Sidebar() {

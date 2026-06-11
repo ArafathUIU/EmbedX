@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/layout/layout";
 import Dashboard from "./pages/dashboard";
 import Documents from "./pages/documents";
+import Mindmap from "./pages/mindmap";
 import Query from "./pages/query";
 
 const queryClient = new QueryClient({
@@ -24,6 +25,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="documents" element={<Documents />} />
             <Route path="query" element={<Query />} />
+            <Route path="mindmap" element={<Mindmap />} />
           </Route>
         </Routes>
       </BrowserRouter>
