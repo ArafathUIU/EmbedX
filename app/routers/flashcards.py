@@ -82,29 +82,43 @@ def _call_llm(text: str, card_count: int) -> list[dict]:
                 ),
             },
         ],
-        max_tokens=2048,
+        max_tokens=4096,
         temperature=0.4,
     )
     raw = response.choices[0].message.content or ""
-    return _parse_json(raw)
+    return _parse_json(raw, card_count)
 
 
-def _parse_json(raw: str) -> list[dict]:
+def _parse_json(raw: str, expected_count: int = 8) -> list[dict]:
     cleaned = raw.strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
     cleaned = cleaned.strip()
 
+    # Try direct parse first
     try:
         data = json.loads(cleaned)
+        if isinstance(data, list):
+            return [c for c in data if isinstance(c, dict) and "question" in c and "answer" in c]
     except json.JSONDecodeError:
-        logger.warning("Failed to parse LLM flashcard JSON: %s", cleaned[:300])
-        raise HTTPException(status_code=422, detail="LLM returned invalid JSON cards")
+        pass
 
-    if not isinstance(data, list):
-        raise HTTPException(status_code=422, detail="LLM response is not a JSON array")
+    # Try to recover truncated JSON — close brackets
+    repaired = cleaned.rstrip()
+    if repaired and not repaired.endswith("]"):
+        repaired += "\n]"
+    try:
+        data = json.loads(repaired)
+        if isinstance(data, list):
+            return [c for c in data if isinstance(c, dict) and "question" in c and "answer" in c]
+    except json.JSONDecodeError:
+        pass
 
-    return [c for c in data if isinstance(c, dict) and "question" in c and "answer" in c]
+    logger.warning("Failed to parse LLM flashcard JSON: %s", cleaned[:500])
+    raise HTTPException(
+        status_code=422,
+        detail="LLM returned invalid JSON cards — please retry",
+    )
 
 
 @router.post("/flashcards")
