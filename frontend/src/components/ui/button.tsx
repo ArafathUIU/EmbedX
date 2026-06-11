@@ -10,28 +10,28 @@ export function Button({
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "outline" | "ghost" | "danger";
+  variant?: "default" | "outline" | "ghost" | "mint";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
 }) {
   const base =
-    "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+    "inline-flex items-center justify-center font-medium font-display tracking-tight transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet/40 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm";
 
   const variants = {
     default:
-      "bg-accent text-white hover:bg-accent-hover active:bg-accent-muted shadow-sm shadow-accent/10",
+      "bg-violet text-void hover:bg-violet-bright active:scale-[0.98]",
     outline:
-      "border border-border bg-transparent text-text-primary hover:bg-surface-hover hover:border-border-hover",
+      "border border-border bg-transparent text-bone hover:border-border-active hover:bg-surface-elevated",
     ghost:
-      "bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-hover",
-    danger:
-      "bg-error/10 text-error hover:bg-error/20 border border-error/20",
+      "bg-transparent text-bone-muted hover:text-bone hover:bg-surface-elevated",
+    mint:
+      "bg-mint text-void hover:brightness-110 active:scale-[0.98]",
   };
 
   const sizes = {
     sm: "h-8 px-3 text-xs",
-    md: "h-10 px-4 text-sm",
-    lg: "h-12 px-6 text-base",
+    md: "h-10 px-5",
+    lg: "h-12 px-7",
   };
 
   return (
@@ -42,17 +42,14 @@ export function Button({
     >
       {loading && (
         <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4"
+          className="animate-spin -ml-1 mr-2 h-3.5 w-3.5"
           fill="none"
           viewBox="0 0 24 24"
         >
           <circle
             className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
+            cx="12" cy="12" r="10"
+            stroke="currentColor" strokeWidth="4"
           />
           <path
             className="opacity-75"

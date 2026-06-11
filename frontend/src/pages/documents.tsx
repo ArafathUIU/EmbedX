@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useIngest } from "@/hooks/use-ingest";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { UploadCloud, FileText, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Upload, FileText, Check, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Documents() {
@@ -26,19 +25,13 @@ export default function Documents() {
       "application/json": [".json"],
     },
     onDrop: (files) => {
-      if (files.length > 0) {
-        setSelectedFile(files[0]);
-      }
+      if (files.length > 0) setSelectedFile(files[0]);
     },
   });
 
   const handleUpload = async () => {
     if (!documentId.trim() || !selectedFile) return;
-    try {
-      await upload(documentId, selectedFile);
-    } catch {
-      // error handled by hook
-    }
+    try { await upload(documentId, selectedFile); } catch {}
   };
 
   const handleClear = () => {
@@ -47,30 +40,34 @@ export default function Documents() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in-up">
       <div>
-        <h2 className="text-2xl font-bold">Documents</h2>
-        <p className="text-text-secondary mt-1">
-          Upload documents to the RAG system for indexing and retrieval
+        <h2 className="font-display text-2xl font-bold tracking-tight text-bone">
+          Documents
+        </h2>
+        <p className="font-mono text-xs text-bone-dim tracking-wide uppercase mt-2">
+          Ingest &middot; Chunk &middot; Embed &middot; Index
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Document</CardTitle>
-            <CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-border">
+        <div className="bg-void p-6">
+          <div className="mb-6">
+            <h3 className="font-display font-semibold text-bone text-base tracking-tight">
+              Upload
+            </h3>
+            <p className="text-xs text-bone-muted mt-1.5 font-body">
               Documents are chunked, embedded, and stored in Qdrant
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </div>
 
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-medium text-text-primary mb-2 block">
+              <label className="font-mono text-[10px] text-bone-dim tracking-widest uppercase mb-2 block">
                 Document ID
               </label>
               <Input
-                placeholder="e.g., report_q3_2024"
+                placeholder="report_q3_2024"
                 value={documentId}
                 onChange={(e) => setDocumentId(e.target.value)}
                 disabled={isLoading}
@@ -80,106 +77,103 @@ export default function Documents() {
             <div
               {...getRootProps()}
               className={cn(
-                "relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+                "relative border border-dashed p-8 text-center cursor-pointer transition-all duration-200",
                 isDragActive
-                  ? "border-accent bg-accent/5"
-                  : "border-border hover:border-accent/50 hover:bg-surface-hover"
+                  ? "border-violet/60 bg-violet/5"
+                  : "border-border hover:border-border-active hover:bg-surface-elevated"
               )}
             >
               <input {...getInputProps()} disabled={isLoading} />
               {selectedFile ? (
                 <div className="space-y-2">
-                  <FileText className="w-10 h-10 text-accent mx-auto" />
-                  <p className="text-sm font-medium text-text-primary">
+                  <FileText className="w-8 h-8 text-violet-bright mx-auto" />
+                  <p className="font-display text-sm font-medium text-bone">
                     {selectedFile.name}
                   </p>
-                  <p className="text-xs text-text-secondary">
+                  <p className="font-mono text-[11px] text-bone-dim">
                     {(selectedFile.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <UploadCloud className="w-10 h-10 text-text-muted mx-auto" />
-                  <p className="text-sm text-text-secondary">
-                    {isDragActive
-                      ? "Drop your file here"
-                      : "Drag & drop a file, or click to browse"}
+                  <Upload className="w-8 h-8 text-bone-dim mx-auto" />
+                  <p className="text-sm text-bone-muted font-body">
+                    {isDragActive ? "Drop your file" : "Drag a file or click to browse"}
                   </p>
-                  <p className="text-xs text-text-muted">
-                    TXT, PDF, MD, JSON (max 10MB)
+                  <p className="font-mono text-[10px] text-bone-dim tracking-wide uppercase">
+                    TXT &middot; PDF &middot; MD &middot; JSON
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-px bg-border">
               <Button
                 onClick={handleUpload}
                 loading={isLoading}
                 disabled={!documentId.trim() || !selectedFile}
+                variant="default"
+                size="lg"
                 className="flex-1"
               >
-                <UploadCloud className="w-4 h-4 mr-2" />
-                Upload & Index
+                <Upload className="w-4 h-4 mr-2" />
+                Index
               </Button>
               <Button
                 variant="ghost"
+                size="lg"
                 onClick={handleClear}
                 disabled={isLoading}
               >
-                <X className="w-4 h-4 mr-1" />
-                Clear
+                <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Result</CardTitle>
-            <CardDescription>Status of the last upload operation</CardDescription>
-          </CardHeader>
+        <div className="bg-void p-6">
+          <div className="mb-6">
+            <h3 className="font-display font-semibold text-bone text-base tracking-tight">
+              Result
+            </h3>
+            <p className="text-xs text-bone-muted mt-1.5 font-body">
+              Status of the last upload operation
+            </p>
+          </div>
 
           {error && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-error/5 border border-error/20">
-              <AlertCircle className="w-5 h-5 text-error mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-4 bg-heat/5 border border-heat/30">
+              <AlertTriangle className="w-4 h-4 text-heat mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-error text-sm">Upload failed</p>
-                <p className="text-xs text-text-secondary mt-0.5">{error}</p>
+                <p className="font-display font-semibold text-heat text-sm">Upload Failed</p>
+                <p className="font-mono text-[11px] text-bone-dim mt-0.5">{error}</p>
               </div>
             </div>
           )}
 
           {result && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
-              <CheckCircle className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-              <div className="space-y-2 w-full">
-                <p className="font-medium text-success text-sm">
-                  Indexed successfully
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 rounded-lg bg-surface-hover text-xs">
-                    <span className="text-text-muted">Document: </span>
-                    <span className="text-text-primary font-medium">
-                      {result.document_id}
-                    </span>
-                  </div>
-                  <Badge variant="success">{result.chunks_indexed} chunks</Badge>
+            <div className="p-4 bg-mint/5 border border-mint/20 space-y-3">
+              <div className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-mint mt-0.5 flex-shrink-0" />
+                <p className="font-display font-semibold text-mint text-sm">Indexed</p>
+              </div>
+              <div className="flex items-center gap-3 pl-7">
+                <div className="px-3 py-1.5 bg-surface-elevated font-mono text-[11px]">
+                  <span className="text-bone-dim">ID </span>
+                  <span className="text-bone">{result.document_id}</span>
                 </div>
+                <Badge variant="mint">{result.chunks_indexed} chunks</Badge>
               </div>
             </div>
           )}
 
           {!error && !result && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="w-12 h-12 text-text-muted mb-3" />
-              <p className="text-sm text-text-secondary">No uploads yet</p>
-              <p className="text-xs text-text-muted mt-1">
-                Upload a document to see results here
-              </p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <FileText className="w-10 h-10 text-bone-dim mb-3 opacity-30" />
+              <p className="text-sm text-bone-dim font-body">No uploads yet</p>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

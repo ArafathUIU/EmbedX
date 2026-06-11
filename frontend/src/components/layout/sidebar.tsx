@@ -1,11 +1,5 @@
 import { NavLink } from "react-router-dom";
-import {
-  LayoutDashboard,
-  FileText,
-  MessageSquare,
-  ExternalLink,
-  Zap,
-} from "lucide-react";
+import { LayoutDashboard, FileText, MessageSquare, ExternalLink } from "lucide-react";
 import { StatusDot, Badge } from "../ui/badge";
 import { useHealth } from "@/hooks/use-health";
 import { cn } from "@/lib/utils";
@@ -23,20 +17,24 @@ export function Sidebar() {
     : "error";
 
   return (
-    <aside className="w-64 h-screen fixed left-0 top-0 border-r border-border bg-surface flex flex-col z-30">
-      <div className="p-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">EmbedX</h1>
-            <p className="text-xs text-text-muted">RAG Platform</p>
-          </div>
+    <aside className="w-60 h-screen fixed left-0 top-0 border-r border-border bg-void z-30 flex flex-col">
+      <div className="p-5 pb-0">
+        <div className="flex items-end gap-2">
+          <span className="font-display font-bold text-2xl tracking-tighter text-bone">
+            embed
+          </span>
+          <span className="font-mono text-xs text-violet tracking-widest uppercase mb-1">
+            x
+          </span>
         </div>
+        <p className="font-mono text-[10px] text-bone-dim tracking-widest uppercase mt-0.5">
+          RAG Platform v0.1
+        </p>
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      <hr className="ortho-rule mx-5 my-4" />
+
+      <nav className="flex-1 px-3 space-y-px">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -44,38 +42,41 @@ export function Sidebar() {
             end={item.to === "/"}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                "flex items-center gap-2.5 px-3 py-2 font-body text-sm tracking-tight transition-colors duration-150",
                 isActive
-                  ? "bg-accent/10 text-accent border border-accent/20"
-                  : "text-text-secondary hover:text-text-primary hover:bg-surface-hover border border-transparent"
+                  ? "bg-violet/10 text-violet-bright border-l border-violet/40"
+                  : "text-bone-muted hover:text-bone hover:bg-surface-elevated border-l border-transparent"
               )
             }
           >
-            <item.icon className="w-4 h-4" />
+            <item.icon className="w-4 h-4 opacity-70" />
             {item.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-text-muted">API Status</span>
-          <Badge variant={status === "healthy" ? "success" : "error"}>
-            <StatusDot status={status} />
-            <span className="ml-1.5">
-              {status === "healthy" ? "Online" : "Offline"}
+      <div className="mt-auto">
+        <hr className="ortho-rule mx-5 mb-4" />
+        <div className="px-5 pb-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase">
+              API
             </span>
-          </Badge>
+            <Badge variant={status === "healthy" ? "mint" : "heat"}>
+              <StatusDot status={status} />
+              <span className="ml-1.5">{status === "healthy" ? "LIVE" : "DOWN"}</span>
+            </Badge>
+          </div>
+          <a
+            href="https://github.com/ArafathUIU/EmbedX"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 font-mono text-[11px] text-bone-dim hover:text-bone-muted transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            github
+          </a>
         </div>
-        <a
-          href="https://github.com/ArafathUIU/EmbedX"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          GitHub
-        </a>
       </div>
     </aside>
   );

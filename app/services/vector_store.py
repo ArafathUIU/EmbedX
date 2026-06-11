@@ -21,9 +21,13 @@ class VectorStore:
     @property
     def client(self) -> QdrantClient:
         if self._client is None:
-            self._client = QdrantClient(
-                url=settings.qdrant_url, api_key=settings.qdrant_api_key or None
-            )
+            if settings.qdrant_url:
+                self._client = QdrantClient(
+                    url=settings.qdrant_url,
+                    api_key=settings.qdrant_api_key or None,
+                )
+            else:
+                self._client = QdrantClient(path=settings.qdrant_local_path)
             self._ensure_collection()
         return self._client
 

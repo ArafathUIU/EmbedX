@@ -3,7 +3,7 @@ import { useHealth } from "@/hooks/use-health";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge, StatusDot } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Clock, Server, Zap } from "lucide-react";
+import { Activity, ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
   const { data: health, isLoading, error, refetch } = useHealth();
@@ -20,16 +20,16 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
+          <Skeleton className="h-8 w-56 mb-2" />
+          <Skeleton className="h-4 w-80" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
           {[...Array(3)].map((_, i) => (
-            <Card key={i}>
+            <div key={i} className="bg-void p-6">
               <Skeleton className="h-20" />
-            </Card>
+            </div>
           ))}
         </div>
       </div>
@@ -38,23 +38,27 @@ export default function Dashboard() {
 
   if (error || !health) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h2 className="text-2xl font-bold">Dashboard</h2>
-          <p className="text-text-secondary mt-1">System overview and health status</p>
+          <h2 className="font-display text-2xl font-bold tracking-tight text-bone">
+            Dashboard
+          </h2>
+          <p className="font-mono text-xs text-bone-dim tracking-wide uppercase mt-2">
+            System Health
+          </p>
         </div>
-        <Card className="border-error/20 bg-error/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
-              <Server className="w-5 h-5 text-error" />
+        <Card className="border-heat/30 bg-heat/5">
+          <div className="p-6 flex items-center gap-4">
+            <div className="w-10 h-10 flex items-center justify-center bg-heat/10">
+              <Activity className="w-5 h-5 text-heat" />
             </div>
             <div className="flex-1">
-              <p className="font-medium text-error">API is unavailable</p>
-              <p className="text-sm text-text-secondary">{error}</p>
+              <p className="font-display font-semibold text-heat text-sm">API Unavailable</p>
+              <p className="font-mono text-xs text-bone-dim mt-0.5">{error}</p>
             </div>
             <button
               onClick={refetch}
-              className="px-4 py-2 rounded-xl bg-surface-hover text-sm hover:bg-border transition-colors cursor-pointer"
+              className="px-4 py-2 border border-border bg-surface-elevated font-mono text-xs text-bone-muted hover:text-bone hover:border-border-active transition-colors cursor-pointer tracking-wide uppercase"
             >
               Retry
             </button>
@@ -64,78 +68,56 @@ export default function Dashboard() {
     );
   }
 
-  const statusCards = [
-    {
-      icon: Activity,
-      label: "Status",
-      value: health.status === "ok" ? "Healthy" : "Issues",
-      variant: "success" as const,
-    },
-    {
-      icon: Clock,
-      label: "Uptime",
-      value: uptimeDisplay,
-      variant: "default" as const,
-    },
-    {
-      icon: Zap,
-      label: "Version",
-      value: `v${health.version}`,
-      variant: "default" as const,
-    },
-  ];
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in-up">
       <div>
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-        <p className="text-text-secondary mt-1">System overview and health status</p>
+        <h2 className="font-display text-2xl font-bold tracking-tight text-bone">
+          Dashboard
+        </h2>
+        <p className="font-mono text-xs text-bone-dim tracking-wide uppercase mt-2">
+          System Health
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {statusCards.map((card) => (
-          <Card key={card.label} className="hover:border-border-hover transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                <card.icon className="w-5 h-5 text-accent" />
-              </div>
-              {card.variant === "success" && (
-                <Badge variant="success">
-                  <StatusDot status="healthy" />
-                  <span className="ml-1.5">Active</span>
-                </Badge>
-              )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
+        {[
+          { label: "STATUS", value: "Healthy", variant: "mint" as const, dot: "healthy" as const },
+          { label: "UPTIME", value: uptimeDisplay, variant: "default" as const, dot: null },
+          { label: "VERSION", value: `v${health.version}`, variant: "ghost" as const, dot: null },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-void p-6 group hover:bg-surface transition-colors">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase">
+                {stat.label}
+              </span>
+              {stat.dot && <StatusDot status={stat.dot} />}
             </div>
-            <div className="mt-4">
-              <p className="text-sm text-text-secondary">{card.label}</p>
-              <p className="text-2xl font-bold mt-1">{card.value}</p>
-            </div>
-          </Card>
+            <p className="font-display text-2xl font-bold tracking-tight text-bone">
+              {stat.value}
+            </p>
+          </div>
         ))}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>API Endpoints</CardTitle>
-          <CardDescription>Available REST endpoints for document ingestion and querying</CardDescription>
+          <CardTitle>Endpoints</CardTitle>
+          <CardDescription>Available REST handlers for ingestion and retrieval</CardDescription>
         </CardHeader>
-        <div className="space-y-3">
+        <div className="px-6 pb-6 space-y-px">
           {[
-            { method: "GET", path: "/health", desc: "Health check with version and uptime" },
-            { method: "POST", path: "/api/v1/ingest", desc: "Upload and index a document" },
-            { method: "POST", path: "/api/v1/query", desc: "Ask a RAG-powered question" },
+            { method: "GET", path: "/health", desc: "Status and uptime", variant: "mint" as const },
+            { method: "POST", path: "/api/v1/ingest", desc: "Upload and index documents", variant: "default" as const },
+            { method: "POST", path: "/api/v1/query", desc: "RAG-powered question answering", variant: "default" as const },
           ].map((ep) => (
             <div
               key={ep.path}
-              className="flex items-center gap-4 p-3 rounded-xl bg-surface-hover border border-transparent hover:border-border transition-all"
+              className="flex items-center gap-4 px-4 py-3 bg-surface-elevated group hover:bg-surface transition-colors"
             >
-              <Badge
-                variant={ep.method === "GET" ? "success" : "default"}
-              >
-                {ep.method}
-              </Badge>
-              <code className="text-sm text-text-primary font-mono">{ep.path}</code>
-              <span className="text-sm text-text-secondary ml-auto">{ep.desc}</span>
+              <Badge variant={ep.variant}>{ep.method}</Badge>
+              <code className="font-mono text-xs text-bone tracking-tight">{ep.path}</code>
+              <span className="text-xs text-bone-dim ml-auto">{ep.desc}</span>
+              <ArrowRight className="w-3 h-3 text-bone-dim opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ))}
         </div>

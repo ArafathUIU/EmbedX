@@ -10,8 +10,9 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = False
 
-    qdrant_url: str = "http://localhost:6333"
+    qdrant_url: str = ""
     qdrant_api_key: str = ""
+    qdrant_local_path: str = "./qdrant_data"
     qdrant_collection_name: str = "embedx_documents"
     vector_dimension: int = 384
 
