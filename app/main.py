@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.routers import analytics, conversations, documents, flashcards, ingest, mindmap, query
@@ -49,3 +51,8 @@ async def health():
         "version": settings.app_version,
         "uptime_seconds": round(uptime, 2),
     }
+
+
+frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
