@@ -67,6 +67,7 @@ class VectorStore:
         top_k: int = 5,
         filter_payload: dict[str, Any] | None = None,
         qdrant_filter: QdrantFilter | None = None,
+        with_vectors: bool = False,
     ) -> list[dict[str, Any]]:
         query_filter = qdrant_filter
         if filter_payload and qdrant_filter is None:
@@ -81,8 +82,15 @@ class VectorStore:
             query=query_vector,
             limit=top_k,
             query_filter=query_filter,
+            with_vectors=with_vectors,
         )
-        return [{"id": p.id, "score": p.score, **p.payload} for p in response.points]
+        results = []
+        for p in response.points:
+            result: dict[str, Any] = {"id": p.id, "score": p.score, **p.payload}
+            if with_vectors and hasattr(p, "vector") and p.vector:
+                result["vector"] = p.vector
+            results.append(result)
+        return results
 
     def delete_by_document(self, document_id: str) -> None:
         self.client.delete(

@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import {
   ArrowRight, User, Copy, Check, Zap, Sparkles,
   MessageSquare, Plus, Trash2, PanelLeftClose, PanelLeft,
-  Edit3, CheckCheck, X,
+  Edit3, CheckCheck, X, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchDocuments, type DocumentSummary } from "@/api/client";
+import { fetchDocuments, queryExplain, type DocumentSummary, type ExplainResponse } from "@/api/client";
+import SearchViz from "@/components/visualization/search-viz";
 
 interface Message {
   id: string;
@@ -30,6 +31,9 @@ export default function Query() {
   const [editTitle, setEditTitle] = useState("");
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [allDocs, setAllDocs] = useState<DocumentSummary[]>([]);
+  const [vizData, setVizData] = useState<ExplainResponse | null>(null);
+  const [vizLoading, setVizLoading] = useState(false);
+  const [vizMsgId, setVizMsgId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { ask, isLoading } = useQuery();
   const conv = useConversations();
@@ -117,6 +121,24 @@ export default function Query() {
     setSelectedDocIds((prev) =>
       prev.includes(docId) ? prev.filter((d) => d !== docId) : [...prev, docId]
     );
+  };
+
+  const handleVisualize = async (msg: Message) => {
+    if (vizMsgId === msg.id) {
+      setVizData(null);
+      setVizMsgId(null);
+      return;
+    }
+    setVizLoading(true);
+    setVizMsgId(msg.id);
+    try {
+      const data = await queryExplain(msg.content);
+      setVizData(data);
+    } catch {
+      setVizData(null);
+    } finally {
+      setVizLoading(false);
+    }
   };
 
   return (
@@ -357,11 +379,27 @@ export default function Query() {
                   )}
 
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
-                    {msg.model && (
-                      <span className="font-mono text-[10px] text-bone-dim tracking-wide uppercase">
-                        {msg.model}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {msg.model && (
+                        <span className="font-mono text-[10px] text-bone-dim tracking-wide uppercase">
+                          {msg.model}
+                        </span>
+                      )}
+                      {msg.chunks && msg.chunks.length > 1 && (
+                        <button
+                          onClick={() => handleVisualize(msg)}
+                          className={cn(
+                            "flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase transition-colors cursor-pointer",
+                            vizMsgId === msg.id
+                              ? "text-violet-bright"
+                              : "text-bone-dim hover:text-violet-bright"
+                          )}
+                        >
+                          <Eye className="w-3 h-3" />
+                          {vizMsgId === msg.id ? "Hide" : "Visualize"}
+                        </button>
+                      )}
+                    </div>
                     {msg.type === "bot" && (
                       <button
                         onClick={() => copyToClipboard(msg.content, msg.id)}
@@ -400,6 +438,59 @@ export default function Query() {
                     <div className="w-8 h-full bg-violet/40 animate-[pulse-glow_1.5s_ease-in-out_infinite]" />
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {vizLoading && (
+            <div className="flex items-center gap-3 p-4 animate-fade-in-up">
+              <div className="w-4 h-4 border-2 border-violet/40 border-t-violet-bright rounded-full animate-spin" />
+              <span className="font-mono text-[11px] text-violet-bright tracking-wide uppercase animate-pulse">
+                Projecting vectors
+              </span>
+            </div>
+          )}
+
+          {vizData && vizMsgId && (
+            <div className="border-t border-border animate-fade-in-up">
+              <div className="p-4">
+                <h4 className="font-mono text-[11px] text-bone-dim tracking-wide uppercase mb-3">
+                  Embedding Space — Query vs Top Chunks (PCA 2D)
+                </h4>
+                <SearchViz
+                  queryX={vizData.query_x}
+                  queryY={vizData.query_y}
+                  points={vizData.points}
+                />
+                {vizData.similarity_matrix.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-mono text-[11px] text-bone-dim tracking-wide uppercase mb-2">
+                      Chunk Similarity Matrix (cosine)
+                    </h4>
+                    <div
+                      className="grid gap-px"
+                      style={{
+                        gridTemplateColumns: `repeat(${vizData.similarity_matrix.length}, 28px)`,
+                      }}
+                    >
+                      {vizData.similarity_matrix.map((row, i) =>
+                        row.map((val, j) => (
+                          <div
+                            key={`${i}-${j}`}
+                            className="w-7 h-7 flex items-center justify-center font-mono text-[9px]"
+                            style={{
+                              backgroundColor: `rgba(153, 102, 255, ${val})`,
+                              color: val > 0.5 ? "#13101d" : "#b8b3bf",
+                            }}
+                            title={`${(val * 100).toFixed(0)}%`}
+                          >
+                            {(val * 100).toFixed(0)}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -76,6 +76,32 @@ export async function queryDocuments(question: string, topK?: number, documentId
   });
 }
 
+export interface ExplainPoint {
+  chunk_id: string;
+  text: string;
+  score: number;
+  x: number;
+  y: number;
+}
+
+export interface ExplainResponse {
+  question: string;
+  answer: string | null;
+  model: string | null;
+  chunks: Array<{ chunk_id: string; text: string; score: number }>;
+  query_x: number;
+  query_y: number;
+  points: ExplainPoint[];
+  similarity_matrix: number[][];
+}
+
+export async function queryExplain(question: string, topK?: number, documentIds?: string[]): Promise<ExplainResponse> {
+  return request<ExplainResponse>("/query/explain", {
+    method: "POST",
+    body: JSON.stringify({ question, top_k: topK, document_ids: documentIds }),
+  });
+}
+
 export interface MindmapNode {
   id: string;
   index: number;
