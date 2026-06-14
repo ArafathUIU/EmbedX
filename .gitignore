@@ -13,3 +13,5 @@ build/
 .ruff_cache/
 .mypy_cache/
 qdrant_data/
+app/data/*.jsonl
+app/data/conversations/*.json
