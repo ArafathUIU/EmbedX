@@ -3,11 +3,13 @@ import { useHealth } from "@/hooks/use-health";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge, StatusDot } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, ArrowRight } from "lucide-react";
+import { Activity, ArrowRight, FileText } from "lucide-react";
+import { fetchDocuments } from "@/api/client";
 
 export default function Dashboard() {
   const { data: health, isLoading, error, refetch } = useHealth();
   const [uptimeDisplay, setUptimeDisplay] = useState("");
+  const [docCount, setDocCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (health?.uptime_seconds) {
@@ -18,6 +20,12 @@ export default function Dashboard() {
     }
   }, [health?.uptime_seconds]);
 
+  useEffect(() => {
+    fetchDocuments()
+      .then((d) => setDocCount(d.total))
+      .catch(() => {});
+  }, []);
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -25,8 +33,8 @@ export default function Dashboard() {
           <Skeleton className="h-8 w-56 mb-2" />
           <Skeleton className="h-4 w-80" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
-          {[...Array(3)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-border">
+          {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-void p-6">
               <Skeleton className="h-20" />
             </div>
@@ -79,15 +87,17 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-border">
         {[
           { label: "STATUS", value: "Healthy", variant: "mint" as const, dot: "healthy" as const },
           { label: "UPTIME", value: uptimeDisplay, variant: "default" as const, dot: null },
           { label: "VERSION", value: `v${health.version}`, variant: "ghost" as const, dot: null },
+          { label: "DOCUMENTS", value: docCount !== null ? String(docCount) : "...", variant: "default" as const, dot: null, icon: FileText },
         ].map((stat) => (
           <div key={stat.label} className="bg-void p-6 group hover:bg-surface transition-colors">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase">
+              <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase flex items-center gap-1.5">
+                {stat.icon && <stat.icon className="w-3 h-3" />}
                 {stat.label}
               </span>
               {stat.dot && <StatusDot status={stat.dot} />}
@@ -109,6 +119,13 @@ export default function Dashboard() {
             { method: "GET", path: "/health", desc: "Status and uptime", variant: "mint" as const },
             { method: "POST", path: "/api/v1/ingest", desc: "Upload and index documents", variant: "default" as const },
             { method: "POST", path: "/api/v1/query", desc: "RAG-powered question answering", variant: "default" as const },
+            { method: "GET", path: "/api/v1/documents", desc: "List indexed documents", variant: "default" as const },
+            { method: "DELETE", path: "/api/v1/documents/{id}", desc: "Delete a document", variant: "heat" as const },
+            { method: "GET", path: "/api/v1/mindmap/{id}", desc: "Chunk similarity graph", variant: "default" as const },
+            { method: "POST", path: "/api/v1/flashcards", desc: "Generate AI flash cards", variant: "default" as const },
+            { method: "GET", path: "/api/v1/conversations", desc: "Conversation history", variant: "default" as const },
+            { method: "POST", path: "/api/v1/conversations", desc: "Create conversation", variant: "default" as const },
+            { method: "GET", path: "/api/v1/analytics/stats", desc: "Usage analytics", variant: "mint" as const },
           ].map((ep) => (
             <div
               key={ep.path}

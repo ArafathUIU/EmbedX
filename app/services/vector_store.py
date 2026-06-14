@@ -6,6 +6,7 @@ from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
+from qdrant_client.http.models import Filter as QdrantFilter
 
 from app.config import settings
 
@@ -65,9 +66,10 @@ class VectorStore:
         query_vector: list[float],
         top_k: int = 5,
         filter_payload: dict[str, Any] | None = None,
+        qdrant_filter: QdrantFilter | None = None,
     ) -> list[dict[str, Any]]:
-        query_filter = None
-        if filter_payload:
+        query_filter = qdrant_filter
+        if filter_payload and qdrant_filter is None:
             conditions = [
                 qdrant_models.FieldCondition(key=k, match=qdrant_models.MatchValue(value=v))
                 for k, v in filter_payload.items()

@@ -15,7 +15,7 @@ interface QueryResult {
 }
 
 interface UseQueryReturn {
-  ask: (question: string, topK?: number) => Promise<QueryResult>;
+  ask: (question: string, topK?: number, documentIds?: string[]) => Promise<QueryResult>;
   isLoading: boolean;
   error: string | null;
   result: QueryResult | null;
@@ -27,11 +27,11 @@ export function useQuery(): UseQueryReturn {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
 
-  const ask = useCallback(async (question: string, topK?: number) => {
+  const ask = useCallback(async (question: string, topK?: number, documentIds?: string[]) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await queryDocuments(question, topK);
+      const res = await queryDocuments(question, topK, documentIds);
       setResult(res);
       return res;
     } catch (err) {

@@ -59,7 +59,7 @@ export async function ingestDocument(
   return response.json();
 }
 
-export async function queryDocuments(question: string, topK?: number): Promise<{
+export async function queryDocuments(question: string, topK?: number, documentIds?: string[]): Promise<{
   question: string;
   answer: string | null;
   chunks: Array<{ chunk_id: string; text: string; score: number }>;
@@ -72,7 +72,7 @@ export async function queryDocuments(question: string, topK?: number): Promise<{
     model: string | null;
   }>("/query", {
     method: "POST",
-    body: JSON.stringify({ question, top_k: topK }),
+    body: JSON.stringify({ question, top_k: topK, document_ids: documentIds }),
   });
 }
 
@@ -104,4 +104,107 @@ export async function fetchMindmap(
     throw new Error("Failed to fetch mindmap");
   }
   return response.json();
+}
+
+export interface DocumentSummary {
+  document_id: string;
+  chunk_count: number;
+}
+
+export async function fetchDocuments(): Promise<{ documents: DocumentSummary[]; total: number }> {
+  return request<{ documents: DocumentSummary[]; total: number }>("/documents");
+}
+
+export async function deleteDocument(documentId: string): Promise<{ document_id: string; status: string }> {
+  return request<{ document_id: string; status: string }>(`/documents/${documentId}`, {
+    method: "DELETE",
+  });
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface MessageEntry {
+  role: string;
+  content: string;
+  chunks?: Array<{ chunk_id: string; text: string; score: number }>;
+  model?: string;
+  timestamp: string;
+}
+
+export interface ConversationData {
+  id: string;
+  title: string;
+  messages: MessageEntry[];
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export async function createConversation(title: string): Promise<ConversationData> {
+  return request<ConversationData>("/conversations", {
+    method: "POST",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function listConversations(): Promise<{ conversations: ConversationSummary[]; total: number }> {
+  return request<{ conversations: ConversationSummary[]; total: number }>("/conversations");
+}
+
+export async function getConversation(id: string): Promise<ConversationData> {
+  return request<ConversationData>(`/conversations/${id}`);
+}
+
+export async function updateConversationTitle(id: string, title: string): Promise<ConversationData> {
+  return request<ConversationData>(`/conversations/${id}/title`, {
+    method: "PUT",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function addConversationMessage(id: string, msg: Omit<MessageEntry, "timestamp">): Promise<ConversationData> {
+  return request<ConversationData>(`/conversations/${id}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ ...msg, timestamp: new Date().toISOString() }),
+  });
+}
+
+export async function deleteConversation(id: string): Promise<void> {
+  await request<{ status: string }>(`/conversations/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export interface AnalyticsStats {
+  total_queries: number;
+  unique_questions: number;
+  avg_latency_ms: number;
+  avg_chunks_per_query: number;
+  top_questions: Array<{ question: string; count: number }>;
+  queries_today: number;
+  queries_this_hour: number;
+  total_documents_queried: number;
+}
+
+export async function fetchAnalyticsStats(): Promise<AnalyticsStats> {
+  return request<AnalyticsStats>("/analytics/stats");
+}
+
+export async function generateFlashcards(
+  documentId: string,
+  cardCount?: number
+): Promise<{ cards: Array<{ question: string; answer: string }>; total: number }> {
+  return request<{ cards: Array<{ question: string; answer: string }>; total: number }>(
+    "/flashcards",
+    {
+      method: "POST",
+      body: JSON.stringify({ document_id: documentId, card_count: cardCount || 8 }),
+    }
+  );
 }

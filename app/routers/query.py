@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from fastapi import APIRouter
 
 from app.config import settings
+from app.routers.analytics import log_query
 from app.schemas import QueryRequest, QueryResponse
 from app.services.llm_client import get_llm_client
 from app.services.retriever import get_retriever
@@ -19,7 +21,8 @@ async def query_documents(request: QueryRequest):
     retriever = get_retriever()
     llm = get_llm_client()
 
-    chunks = retriever.retrieve(request.question, top_k=request.top_k)
+    start = time.time()
+    chunks = retriever.retrieve(request.question, top_k=request.top_k, document_ids=request.document_ids)
 
     context = retriever.format_context(chunks)
     try:
@@ -30,6 +33,16 @@ async def query_documents(request: QueryRequest):
             "Unable to generate an answer. Please check that the "
             "LLM_API_KEY is configured and the LLM service is available."
         )
+    latency = (time.time() - start) * 1000
+
+    log_query(
+        question=request.question,
+        answer=answer,
+        chunks_count=len(chunks),
+        model=settings.llm_model,
+        latency_ms=latency,
+        document_ids=request.document_ids,
+    )
 
     return QueryResponse(
         question=request.question,

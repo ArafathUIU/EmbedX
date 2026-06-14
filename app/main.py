@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import flashcards, ingest, mindmap, query
+from app.routers import analytics, conversations, documents, flashcards, ingest, mindmap, query
 
 
 @asynccontextmanager
@@ -35,6 +35,9 @@ app.include_router(ingest.router, prefix="/api/v1", tags=["ingestion"])
 app.include_router(query.router, prefix="/api/v1", tags=["query"])
 app.include_router(mindmap.router, prefix="/api/v1", tags=["mindmap"])
 app.include_router(flashcards.router, prefix="/api/v1", tags=["flashcards"])
+app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
+app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["analytics"])
 
 
 @app.get("/health")

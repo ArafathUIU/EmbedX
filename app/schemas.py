@@ -25,6 +25,7 @@ class ChunkResult(BaseModel):
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2048)
     top_k: int = Field(default=5, ge=1, le=20)
+    document_ids: list[str] | None = None
 
 
 class QueryResponse(BaseModel):

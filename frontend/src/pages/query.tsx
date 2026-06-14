@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@/hooks/use-query";
+import { useConversations } from "@/hooks/use-conversations";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ArrowRight, User, Copy, Check, Zap, Sparkles,
+  MessageSquare, Plus, Trash2, PanelLeftClose, PanelLeft,
+  Edit3, CheckCheck, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchDocuments, type DocumentSummary } from "@/api/client";
 
 interface Message {
   id: string;
@@ -21,8 +25,14 @@ export default function Query() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [allDocs, setAllDocs] = useState<DocumentSummary[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { ask, isLoading } = useQuery();
+  const conv = useConversations();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -30,6 +40,11 @@ export default function Query() {
       behavior: "smooth",
     });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    conv.fetchAll();
+    fetchDocuments().then((d) => setAllDocs(d.documents)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +54,11 @@ export default function Query() {
       id: crypto.randomUUID(), type: "user", content: question, timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, userMsg]);
+    const q = question;
     setQuestion("");
 
     try {
-      const result = await ask(question);
+      const result = await ask(q, undefined, selectedDocIds.length > 0 ? selectedDocIds : undefined);
       const botMsg: Message = {
         id: crypto.randomUUID(), type: "bot",
         content: result.answer || "Unable to generate an answer.",
@@ -67,18 +83,194 @@ export default function Query() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleNewConversation = async () => {
+    const id = await conv.create("New Conversation");
+    setMessages([]);
+    setEditingId(id);
+    setEditTitle("New Conversation");
+  };
+
+  const handleLoadConversation = async (id: string) => {
+    await conv.load(id);
+    if (conv.current) {
+      setMessages(
+        conv.current.messages.map((m) => ({
+          id: crypto.randomUUID(),
+          type: m.role as "user" | "bot",
+          content: m.content,
+          timestamp: new Date(m.timestamp).getTime(),
+          chunks: m.chunks,
+          model: m.model,
+        }))
+      );
+    }
+  };
+
+  const handleRename = async (id: string) => {
+    if (editTitle.trim()) {
+      await conv.rename(id, editTitle.trim());
+    }
+    setEditingId(null);
+  };
+
+  const toggleDocFilter = (docId: string) => {
+    setSelectedDocIds((prev) =>
+      prev.includes(docId) ? prev.filter((d) => d !== docId) : [...prev, docId]
+    );
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div>
-        <h2 className="font-display text-2xl font-bold tracking-tight text-bone">
-          Query
-        </h2>
-        <p className="font-mono text-xs text-bone-dim tracking-wide uppercase mt-2">
-          Retrieve &middot; Generate &middot; Answer
-        </p>
+    <div className="flex gap-px bg-border h-[calc(100vh-4rem)] animate-fade-in-up">
+      {/* Conversation sidebar */}
+      <div
+        className={cn(
+          "bg-void transition-all duration-200 flex flex-col overflow-hidden",
+          sidebarOpen ? "w-64" : "w-0"
+        )}
+      >
+        <div className="p-4 space-y-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase">
+              Conversations
+            </span>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="text-bone-dim hover:text-bone transition-colors cursor-pointer"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </div>
+          <Button
+            variant="mint"
+            size="sm"
+            className="w-full"
+            onClick={handleNewConversation}
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            New Chat
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-3 space-y-px pb-4">
+          {conv.conversations.map((c) => (
+            <div
+              key={c.id}
+              className={cn(
+                "group flex items-center gap-2 px-3 py-2 text-sm transition-colors cursor-pointer",
+                conv.current?.id === c.id
+                  ? "bg-violet/10 text-violet-bright"
+                  : "text-bone-muted hover:text-bone hover:bg-surface-elevated"
+              )}
+              onClick={() => handleLoadConversation(c.id)}
+            >
+              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+              <div className="flex-1 min-w-0">
+                {editingId === c.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="h-6 text-xs py-0 px-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(c.id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRename(c.id); }}
+                      className="text-mint hover:text-mint-subtle cursor-pointer"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingId(null); }}
+                      className="text-bone-dim hover:text-bone cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="truncate text-xs">{c.title}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(c.id);
+                    setEditTitle(c.title);
+                  }}
+                  className="p-1 text-bone-dim hover:text-bone cursor-pointer"
+                >
+                  <Edit3 className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    conv.remove(c.id);
+                  }}
+                  className="p-1 text-bone-dim hover:text-heat cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {conv.conversations.length === 0 && (
+            <p className="text-xs text-bone-dim text-center py-8">No conversations yet</p>
+          )}
+        </div>
       </div>
 
-      <Card className="flex flex-col h-[calc(100vh-12rem)] overflow-hidden">
+      {/* Main chat area */}
+      <Card className="flex flex-col flex-1 overflow-hidden rounded-none border-0">
+        {!sidebarOpen && (
+          <div className="p-2 border-b border-border">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex items-center gap-1.5 text-bone-dim hover:text-bone transition-colors text-xs cursor-pointer"
+            >
+              <PanelLeft className="w-4 h-4" />
+              Conversations
+            </button>
+          </div>
+        )}
+
+        {/* Document filter bar */}
+        {allDocs.length > 0 && (
+          <div className="px-4 py-2 border-b border-border flex items-center gap-2 overflow-x-auto scrollbar-thin">
+            <span className="font-mono text-[10px] text-bone-dim tracking-widest uppercase flex-shrink-0">
+              Filter:
+            </span>
+            <button
+              onClick={() => setSelectedDocIds([])}
+              className={cn(
+                "font-mono text-[10px] px-2 py-0.5 border transition-colors flex-shrink-0 cursor-pointer",
+                selectedDocIds.length === 0
+                  ? "border-violet/40 text-violet-bright bg-violet/10"
+                  : "border-border text-bone-dim hover:text-bone"
+              )}
+            >
+              All
+            </button>
+            {allDocs.map((doc) => (
+              <button
+                key={doc.document_id}
+                onClick={() => toggleDocFilter(doc.document_id)}
+                className={cn(
+                  "font-mono text-[10px] px-2 py-0.5 border transition-colors flex-shrink-0 cursor-pointer whitespace-nowrap",
+                  selectedDocIds.includes(doc.document_id)
+                    ? "border-violet/40 text-violet-bright bg-violet/10"
+                    : "border-border text-bone-dim hover:text-bone"
+                )}
+              >
+                {doc.document_id}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin"
@@ -124,7 +316,7 @@ export default function Query() {
                   <p
                     className={cn(
                       "text-sm leading-relaxed whitespace-pre-wrap",
-                      msg.type === "user" ? "font-body text-bone" : "font-body text-bone"
+                      "font-body text-bone"
                     )}
                   >
                     {msg.content}

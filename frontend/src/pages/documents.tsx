@@ -4,19 +4,56 @@ import { useIngest } from "@/hooks/use-ingest";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileText, Check, AlertTriangle, X } from "lucide-react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Upload, FileText, Check, AlertTriangle, X, Trash2, RefreshCw,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchDocuments, deleteDocument, type DocumentSummary } from "@/api/client";
 
 export default function Documents() {
   const [documentId, setDocumentId] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { upload, isLoading, error, result } = useIngest();
+  const [docs, setDocs] = useState<DocumentSummary[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (result) {
       sessionStorage.setItem("embedx_last_doc", result.document_id);
     }
   }, [result]);
+
+  const loadDocs = async () => {
+    setDocsLoading(true);
+    try {
+      const data = await fetchDocuments();
+      setDocs(data.documents);
+    } catch {
+      // silently fail
+    } finally {
+      setDocsLoading(false);
+    }
+  };
+
+  useEffect(() => { loadDocs(); }, []);
+
+  useEffect(() => {
+    if (result) loadDocs();
+  }, [result]);
+
+  const handleDelete = async (did: string) => {
+    setDeleting(did);
+    try {
+      await deleteDocument(did);
+      setDocs((prev) => prev.filter((d) => d.document_id !== did));
+    } catch {
+      // silently fail
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const {
     getRootProps,
@@ -181,6 +218,51 @@ export default function Documents() {
           )}
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Indexed Documents</CardTitle>
+            <button
+              onClick={loadDocs}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border bg-surface-elevated font-mono text-[10px] text-bone-dim hover:text-bone hover:border-border-active transition-colors cursor-pointer tracking-wide uppercase"
+            >
+              <RefreshCw className={`w-3 h-3 ${docsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
+        </CardHeader>
+        <div className="px-6 pb-6">
+          {docs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <FileText className="w-10 h-10 text-bone-dim mb-3 opacity-30" />
+              <p className="text-sm text-bone-dim font-body">No documents indexed yet</p>
+            </div>
+          ) : (
+            <div className="space-y-px">
+              {docs.map((doc) => (
+                <div
+                  key={doc.document_id}
+                  className="flex items-center gap-4 px-4 py-3 bg-surface-elevated group hover:bg-surface transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-violet-bright flex-shrink-0" />
+                  <code className="font-mono text-xs text-bone tracking-tight flex-1">
+                    {doc.document_id}
+                  </code>
+                  <Badge variant="ghost">{doc.chunk_count} chunks</Badge>
+                  <button
+                    onClick={() => handleDelete(doc.document_id)}
+                    disabled={deleting === doc.document_id}
+                    className="p-1.5 text-bone-dim hover:text-heat transition-colors opacity-0 group-hover:opacity-100 cursor-pointer disabled:opacity-30"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
