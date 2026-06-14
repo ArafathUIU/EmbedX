@@ -12,9 +12,10 @@ def _override_settings(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _clear_caches():
-    from app.services.vector_store import get_vector_store
-    from app.services.retriever import get_retriever
     from app.services.embedder import get_embedder
+    from app.services.retriever import get_retriever
+    from app.services.vector_store import get_vector_store
+
     get_vector_store.cache_clear()
     get_retriever.cache_clear()
     get_embedder.cache_clear()

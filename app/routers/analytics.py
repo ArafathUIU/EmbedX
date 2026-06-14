@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter
@@ -22,7 +22,14 @@ def _ensure_dir() -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
-def log_query(question: str, answer: str | None, chunks_count: int, model: str, latency_ms: float, document_ids: list[str] | None = None) -> None:
+def log_query(
+    question: str,
+    answer: str | None,
+    chunks_count: int,
+    model: str,
+    latency_ms: float,
+    document_ids: list[str] | None = None,
+) -> None:
     _ensure_dir()
     entry = {
         "question": question,
@@ -31,7 +38,7 @@ def log_query(question: str, answer: str | None, chunks_count: int, model: str, 
         "model": model,
         "latency_ms": round(latency_ms, 2),
         "document_ids": document_ids or [],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     try:
         with open(ANALYTICS_FILE, "a") as f:
@@ -71,26 +78,29 @@ async def get_analytics_stats():
     total = len(logs)
     if total == 0:
         return AnalyticsStats(
-            total_queries=0, unique_questions=0, avg_latency_ms=0.0,
-            avg_chunks_per_query=0.0, top_questions=[], queries_today=0,
-            queries_this_hour=0, total_documents_queried=0,
+            total_queries=0,
+            unique_questions=0,
+            avg_latency_ms=0.0,
+            avg_chunks_per_query=0.0,
+            top_questions=[],
+            queries_today=0,
+            queries_this_hour=0,
+            total_documents_queried=0,
         )
 
-    questions = [l.get("question", "") for l in logs]
-    latencies = [l.get("latency_ms", 0) for l in logs]
-    chunks = [l.get("chunks_count", 0) for l in logs]
+    questions = [entry.get("question", "") for entry in logs]
+    latencies = [entry.get("latency_ms", 0) for entry in logs]
+    chunks = [entry.get("chunks_count", 0) for entry in logs]
     question_counts = Counter(questions)
     top_qs = [{"question": q, "count": c} for q, c in question_counts.most_common(10)]
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     today_str = now.strftime("%Y-%m-%d")
-    today_count = sum(1 for l in logs if l.get("timestamp", "").startswith(today_str))
+    today_count = sum(1 for entry in logs if entry.get("timestamp", "").startswith(today_str))
     hour_str = now.strftime("%Y-%m-%dT%H")
-    hour_count = sum(1 for l in logs if l.get("timestamp", "").startswith(hour_str))
+    hour_count = sum(1 for entry in logs if entry.get("timestamp", "").startswith(hour_str))
 
-    doc_ids_count = len(set(
-        did for l in logs for did in l.get("document_ids", []) if did
-    ))
+    doc_ids_count = len(set(did for entry in logs for did in entry.get("document_ids", []) if did))
 
     return AnalyticsStats(
         total_queries=total,

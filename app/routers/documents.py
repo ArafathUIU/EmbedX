@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException
-from qdrant_client.http import models as qdrant_models
 from pydantic import BaseModel
 
 from app.services.vector_store import get_vector_store

@@ -32,7 +32,11 @@ def mock_qdrant():
                             "id": "1",
                             "version": 0,
                             "score": 0.95,
-                            "payload": {"text": "test chunk", "chunk_id": "c1", "document_id": "doc-1"},
+                            "payload": {
+                                "text": "test chunk",
+                                "chunk_id": "c1",
+                                "document_id": "doc-1",
+                            },
                         },
                     )()
                 ],

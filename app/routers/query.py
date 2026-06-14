@@ -22,7 +22,9 @@ async def query_documents(request: QueryRequest):
     llm = get_llm_client()
 
     start = time.time()
-    chunks = retriever.retrieve(request.question, top_k=request.top_k, document_ids=request.document_ids)
+    chunks = retriever.retrieve(
+        request.question, top_k=request.top_k, document_ids=request.document_ids
+    )
 
     context = retriever.format_context(chunks)
     try:

@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class Retriever:
-    def retrieve(self, query: str, top_k: int | None = None, document_ids: list[str] | None = None) -> list[ChunkResult]:
+    def retrieve(
+        self, query: str, top_k: int | None = None, document_ids: list[str] | None = None
+    ) -> list[ChunkResult]:
         k = top_k or settings.top_k_retrieval
         embedder = get_embedder()
         store = get_vector_store()
@@ -32,7 +34,9 @@ class Retriever:
                 ]
             )
             try:
-                results = store.search(query_vector=query_vector, top_k=k, qdrant_filter=query_filter)
+                results = store.search(
+                    query_vector=query_vector, top_k=k, qdrant_filter=query_filter
+                )
             except Exception:
                 logger.warning("Vector store search failed, returning empty results", exc_info=True)
                 return []
@@ -50,7 +54,9 @@ class Retriever:
             filter_payload = {"document_id": document_ids[0]}
 
         try:
-            results = store.search(query_vector=query_vector, top_k=k, filter_payload=filter_payload)
+            results = store.search(
+                query_vector=query_vector, top_k=k, filter_payload=filter_payload
+            )
         except Exception:
             logger.warning("Vector store search failed, returning empty results", exc_info=True)
             return []

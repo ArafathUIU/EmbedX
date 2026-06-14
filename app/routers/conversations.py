@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -68,7 +68,7 @@ class ConversationListResponse(BaseModel):
 async def create_conversation(req: ConversationCreate):
     _ensure_dir()
     cid = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     data = {
         "id": cid,
         "title": req.title,
@@ -152,7 +152,7 @@ async def update_conversation_title(conversation_id: str, req: ConversationUpdat
         raise HTTPException(status_code=500, detail="Failed to read conversation")
     if req.title is not None:
         data["title"] = req.title
-    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data["updated_at"] = datetime.now(UTC).isoformat()
     with open(path, "w") as f:
         json.dump(data, f)
     messages = [MessageEntry(**m) for m in data.get("messages", [])]
@@ -177,9 +177,9 @@ async def add_message(conversation_id: str, msg: MessageEntry):
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to read conversation")
     if not msg.timestamp:
-        msg.timestamp = datetime.now(timezone.utc).isoformat()
+        msg.timestamp = datetime.now(UTC).isoformat()
     data.setdefault("messages", []).append(msg.model_dump())
-    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data["updated_at"] = datetime.now(UTC).isoformat()
     with open(path, "w") as f:
         json.dump(data, f)
     messages = [MessageEntry(**m) for m in data.get("messages", [])]

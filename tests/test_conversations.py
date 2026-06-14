@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 
@@ -8,7 +7,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-from app.routers.conversations import CONVERSATIONS_DIR, _ensure_dir
+from app.routers.conversations import _ensure_dir
 
 
 @pytest.fixture
